@@ -1,15 +1,70 @@
-apiVersion: networking.controller/v1
+##https://istio.io/latest/docs/reference/config/networking/gateway/
+apiVersion: networking.istio.io/v1alpha3
 kind: Gateway
 metadata:
-  name: test
+  name: my-gateway
+  namespace: some-config-namespace
 spec:
   selector:
-    app: test
+    app: my-gateway-controller
   servers:
   - port:
+      number: 80
+      name: basic-http-server-redirect
+      protocol: HTTP
+    hosts:
+    - public.bookinfo.com
+  - port:
+      number: 80
+      name: basic-http-server-redirect
+      protocol: HTTP
+    hosts:
+    - uk.bookinfo.com
+    - eu.bookinfo.com
+    tls:
+      httpsRedirect: true # sends 301 redirect for http requests
+  - port:
       number: 443
-  hosts:
-  tls:
-    mode: mutual
-    credential: mypassword
-    minProtocolVersion: TLSV1_1
+      name: public-443
+      protocol: HTTPS
+    hosts:
+    - uk.bookinfo.com
+    - eu.bookinfo.com
+    tls:
+      mode: SIMPLE #simple web access
+  - port:
+      number: 4443
+      name: admin-public-access-4443
+      protocol: HTTPS
+    hosts:
+    - uk.bookinfo.com/admin
+    - eu.bookinfo.com/admin
+    tls:
+      httpsRedirect: true # sends 301 redirect for http requests
+      mode: MUTUAL
+      serverCertificate: "/serverCert"
+      privateKey: "/PK"
+      caCertificates: "/CACert"
+      subjectAltNames: "admin.user.bookinfo.com"
+      minProtocolVersion: "TLSV1_2"
+      cipherSuites: "ECDHE-ECDSA-AES128-GCM-SHA256"
+  - port:
+      number: 4444
+      name: admin-public-access-4444
+      protocol: HTTPS
+    hosts:
+    - uk.bookinfo.com/admin1
+    - eu.bookinfo.com/admin1
+    tls:
+      credentialName: "mycreds"
+      subjectAltNames: "admin1.user.bookinfo.com"
+      minProtocolVersion: "TLSV1_2"
+      cipherSuites: 
+      - "ECDHE-ECDSA-AES128-GCM-SHA256"    
+      - "ECDHE-RSA-AES128-GCM-SHA256"     
+  - port:
+      number: 2379 # to expose internal service via external port 2379
+      name: mongo
+      protocol: MONGO
+    hosts:
+    - "*"
